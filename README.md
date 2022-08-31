@@ -1,1 +1,1 @@
-# smart-contract
+# Carbonite Smart Contracts
