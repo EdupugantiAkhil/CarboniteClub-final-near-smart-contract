@@ -9,7 +9,7 @@ use near_sdk::{
     Promise, PublicKey, Timestamp,
 };
 
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
 mod company;
 mod metadata;
