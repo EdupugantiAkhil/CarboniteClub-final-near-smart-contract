@@ -20,15 +20,17 @@ pub use crate::company::*;
 pub use crate::metadata::*;
 pub use crate::utils::*;
 
+const DEFAULT_RECOGNISED_SKILLS_SET: [&str;2] = ["UI Designing", "UX Designing"];
+
 /// Helper structure to for keys of the persistent collections.
 #[derive(BorshStorageKey, BorshSerialize)]
 pub enum StorageKey {
-    TokenByAccountId,
+    TokensByAccountId,
     TasksCompletedPerAccount,
     TasksCompletedPerAccountInner {account_id_hash: CryptoHash},
     TasksByCompany,
     TasksByCompanyInner {task_id_hash: CryptoHash},
-    TaskById,
+    TaskMetadataById,
     RecognisedSkills,
     WhitelistedCompanies,
     ApprovedFTTokens,
@@ -70,7 +72,42 @@ pub struct Contract{
 impl Contract {
 
     #[init]
-    pub fn new(owner_id: AccountId) -> Self {
-        unimplemented!();
+    pub fn new(owner_id: AccountId,metadata: NFTContractMetadata) -> Self {
+
+        let carbonite_account_id  = env::current_account_id();
+
+        let mut this = Self{
+            owner_id,
+            tokens_by_account_id: UnorderedMap::new(StorageKey::TokensByAccountId),
+            tasks_completed_per_account: LookupMap::new(StorageKey::TasksCompletedPerAccount),
+            tasks_by_company: LookupMap::new(StorageKey::TasksByCompany),
+            task_metadata_by_id: UnorderedMap::new(StorageKey::TaskMetadataById),
+            recognised_skills: UnorderedSet::new(StorageKey::RecognisedSkills),
+            whitelisted_companies: UnorderedMap::new(StorageKey::WhitelistedCompanies),
+            approved_ft_tokens: UnorderedSet::new(StorageKey::ApprovedFTTokens),
+            metadata: LazyOption::new(StorageKey::NFTContractMetadata,Some(&metadata)),
+        };
+
+        for skill in DEFAULT_RECOGNISED_SKILLS_SET.into_iter(){
+            this.recognised_skills.insert(&skill.into());
+        }
+
+        let carbonite = Company{
+            name: "Carbonite".to_string(),
+            icon: "CARBONITE".to_string(),
+            industries: "Blockchain".to_string(),
+            description: "Build your Proof of Skills".to_string(),
+            location: None,
+            reference: "ipfs://dummylink".to_string(),
+        };
+
+        this.whitelisted_companies.insert(&carbonite_account_id,&carbonite);
+
+        let near_contract_id = AccountId::new_unchecked("near".to_string());
+
+        this.approved_ft_tokens.insert(&near_contract_id);
+
+        this
+
     }
 }

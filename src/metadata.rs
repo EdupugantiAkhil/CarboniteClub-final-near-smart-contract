@@ -51,5 +51,3 @@ impl NonFungibleTokenMetadata for Contract {
         self.metadata.get().unwrap()
     }
 }
-
-impl_assert_valid_metadata_fn_for!(NFTContractMetadata,TokenMetadata,Task);

@@ -5,7 +5,7 @@ use crate::*;
 pub struct Company{
     pub name: String,
     pub icon: String,                   // Data URL of company logo
-    pub industries: String,             // various industries (space seperated) in which company is working
+    pub industries: String,             // various industries (comma seperated) in which company is working
     pub description: String,            // short description about the company
     pub location: Option<String>,       // None if company is remote or else represents headquarter location
     pub reference: String,              // website url of the company
