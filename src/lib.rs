@@ -12,12 +12,14 @@ use near_sdk::{
 use std::collections::{HashMap, HashSet};
 
 mod company;
+mod internal;
 mod metadata;
 mod task;
 mod user;
 mod utils;
 
 pub use crate::company::*;
+pub use crate::internal::*;
 pub use crate::metadata::*;
 pub use crate::task::*;
 pub use crate::user::*;

@@ -2,7 +2,7 @@ use crate::*;
 
 pub type Skills = String;
 
-// TaskId = company_name.task_name      company account_id = company_name.carbonite.near
+/// TaskId = company_name.task_name      company account_id = company_name.carbonite.near
 pub type TaskId = String;
 
 #[derive(BorshDeserialize, BorshSerialize, Serialize, Deserialize, Clone)]
@@ -53,8 +53,8 @@ impl NonFungibleTokenMetadata for Contract {
 }
 
 impl TokenMetadata {
-    // creates the default NFT token metadata with given title and description
-    pub fn new(title: String, description: Option<String>) -> Self {
+    /// creates the default NFT token metadata with given title and description
+    pub fn new_default(title: String, description: Option<String>) -> Self {
         let media_hash = Base64VecU8::from([5_u8; 32].to_vec());
         let reference_hash = Base64VecU8::from([5_u8; 32].to_vec());
 
