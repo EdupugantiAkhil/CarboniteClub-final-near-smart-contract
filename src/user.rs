@@ -16,10 +16,7 @@ impl Contract {
 
         assert_valid_carbonite_user_account(receiver_id.as_str());
 
-        Promise::new(receiver_id.clone())
-            .create_account()
-            .transfer(BASE_STORAGE_COST)
-            .add_full_access_key(public_key);
+        create_sub_account(receiver_id.clone(), public_key);
 
         let token_metadata = TokenMetadata::new_default(title, description);
 
@@ -33,6 +30,27 @@ impl Contract {
         // and appropriate amount of near to cover storage costs
         // for standarisation purpose later a mint_event will be emitted
         // Add a gas check to ensure sub account creation and the full execution if account creation does not revert on panic
+        // think of making it a batch mint function
         todo!();
+    }
+}
+
+/// asserts that passed account ID is exactly of form valid_username.carbonite.near
+pub(crate) fn assert_valid_carbonite_user_account(account_id: &str) {
+    if let Some((username, carbonite_contract_id)) = account_id.split_once(".") {
+        require!(
+            username
+                .bytes()
+                .into_iter()
+                .all(|c| matches!(c, b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'_')),
+            "Invalid username passed"
+        );
+
+        require!(
+            carbonite_contract_id == env::current_account_id().as_str(),
+            "Invalid account ID passed"
+        );
+    } else {
+        env::panic_str("Invalid account ID passed")
     }
 }

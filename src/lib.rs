@@ -134,4 +134,27 @@ impl Contract {
 
         refund_deposit(storage_used);
     }
+
+    /// owner only method to add new multiple whitelisted companies
+    #[payable]
+    pub fn whitelist_companies(&mut self, companies: Vec<(AccountId, Company, PublicKey)>) {
+        self.assert_owner();
+
+        let initial_storage = env::storage_usage();
+
+        for (company_id, company, public_key) in companies {
+            assert_valid_carbonite_company_account(company_id.as_str());
+
+            create_sub_account(company_id.clone(), public_key);
+
+            self.internal_add_company_to_whitelisted_companies(&company_id, &company);
+        }
+
+        let storage_used = env::storage_usage() - initial_storage;
+        refund_deposit(storage_used);
+
+        // Add a gas check to ensure sub account creation and the full execution if account creation does not revert on panic
+        // Add a check for max companies that can be whitelisted in a single call (restricted due to hard limit on gas on a function call)
+        todo!();
+    }
 }
