@@ -118,4 +118,20 @@ impl Contract {
 
         this
     }
+
+    /// owner only method to approve multiple ft_token support
+    #[payable]
+    pub fn approve_ft_tokens(&mut self, ft_tokens_contract_ids: Vec<AccountId>) {
+        self.assert_owner();
+
+        let initial_storage = env::storage_usage();
+
+        for ft_contract_id in ft_tokens_contract_ids {
+            self.approved_ft_tokens.insert(&ft_contract_id);
+        }
+
+        let storage_used = env::storage_usage() - initial_storage;
+
+        refund_deposit(storage_used);
+    }
 }

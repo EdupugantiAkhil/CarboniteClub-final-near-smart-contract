@@ -41,7 +41,7 @@ pub(crate) fn assert_valid_carbonite_user_account(account_id: &str) {
 }
 
 impl Contract {
-    fn assert_owner(&self) {
+    pub fn assert_owner(&self) {
         require!(
             env::predecessor_account_id() == self.owner_id,
             "Only Contract Owner can call this method"
