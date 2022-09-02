@@ -175,6 +175,7 @@ impl Contract {
                 TaskState::Completed => {
                     if task.is_past_deadline() {
                         // pay to the first person who submitted and then change state
+                        // add to the completed tasks per account collection
                         todo!();
                         task.task_state = TaskState::Payed;
                     }

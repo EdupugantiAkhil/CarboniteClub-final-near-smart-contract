@@ -48,7 +48,7 @@ pub struct Task {
     pub task_details: TaskDetails,
     pub company_id: AccountId, // account ID of the company giving this task
     pub deadline: Timestamp, // if task is not completed till this (unix epoch in ms) then company can claim refund
-    pub person_assigned: Option<AccountId>, // person assigned or person thst accepted the invite for task in an invite only task
+    pub person_assigned: Option<AccountId>, // person assigned or person that accepted the invite for task in an invite only task
     pub task_state: TaskState,
     pub ft_contract_id: AccountId, // contract ID of approved token used to pay
     pub reward: Balance, // reward amount in smallest unit of tokens, Eg: for near it will be yoctoNEAR
@@ -60,6 +60,16 @@ impl TaskDetails {
     pub fn assert_valid_task_details(&self) {
         require!(
             self.reference_hash.0.len() == 32,
+            "hash should be 32 bytes long"
+        )
+    }
+}
+
+impl Submission {
+    /// assert that submission details are valid else panic
+    pub fn assert_valid_submission_details(&self) {
+        require!(
+            self.submission_reference_hash.0.len() == 32,
             "hash should be 32 bytes long"
         )
     }
@@ -167,5 +177,60 @@ impl Contract {
         self.task_metadata_by_id.insert(&task_id, &task);
     }
 
-    pub fn submit_task(task_id: TaskId, submission: Submission) {}
+    /// submits the task if the user is eligible to submit for the task
+    #[payable]
+    pub fn submit_task(&mut self, task_id: TaskId, submission: Submission) {
+        let initial_storage = env::storage_usage();
+
+        let user_id = env::predecessor_account_id();
+
+        self.ping_task(task_id.clone());
+
+        let mut task = self.task_metadata_by_id.get(&task_id).unwrap();
+
+        submission.assert_valid_submission_details();
+
+        match task.task_state {
+            TaskState::Pending => {
+                if let Some(person_assigned) = task.person_assigned.clone() {
+                    require!(
+                        user_id == person_assigned,
+                        "only person assigned can submit the task"
+                    );
+                }
+                require!(
+                    task.submissions_by_account_id
+                        .insert(user_id, submission)
+                        .is_none(),
+                    "task has already been submitted can't re-submit it"
+                );
+
+                task.task_state = TaskState::Completed;
+
+                if task.person_assigned.is_some() {
+                    // transfer reward to the user given its a invite only
+                    // make gas check for promise to go through
+                    todo!();
+                    task.task_state = TaskState::Payed;
+                    self.internal_add_tasks_to_account(&user_id, &task_id);
+                }
+            }
+            TaskState::Completed => {
+                require!(
+                    task.submissions_by_account_id
+                        .insert(user_id, submission)
+                        .is_none(),
+                    "task has already been submitted can't re-submit it"
+                );
+            }
+            _ => {
+                env::panic_str("can't submit the task now");
+            }
+        }
+
+        self.task_metadata_by_id.insert(&task_id, &task);
+
+        let storage_used = env::storage_usage() - initial_storage;
+        refund_excess_deposit(storage_used);
+    }
 }
