@@ -14,7 +14,7 @@ impl Contract {
     ) {
         let initial_storage = env::storage_usage();
 
-        assert_valid_carbonite_user_account(receiver_id.as_str());
+        assert_valid_carbonite_user_account_pattern(receiver_id.as_str());
 
         create_sub_account(receiver_id.clone(), public_key);
 
@@ -36,7 +36,7 @@ impl Contract {
 }
 
 /// asserts that passed account ID is exactly of form valid_username.carbonite.near
-pub(crate) fn assert_valid_carbonite_user_account(account_id: &str) {
+pub(crate) fn assert_valid_carbonite_user_account_pattern(account_id: &str) {
     if let Some((username, carbonite_contract_id)) = account_id.split_once(".") {
         require!(
             username

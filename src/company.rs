@@ -13,8 +13,37 @@ pub struct Company {
     pub reference: String,        // website url of the company
 }
 
+#[near_bindgen]
+impl Contract {
+    /// company only method to edit company details
+    #[payable]
+    pub fn edit_company_details(&mut self, new_company_details: Company) {
+        let initial_storage = env::storage_usage();
+
+        let company_id = env::predecessor_account_id();
+
+        require!(
+            self.whitelisted_companies
+                .insert(&company_id, &new_company_details)
+                .is_some(),
+            "invalid company"
+        );
+
+        let final_storage = env::storage_usage();
+
+        let storage_used = final_storage.abs_diff(initial_storage);
+
+        if final_storage > initial_storage {
+            refund_deposit(storage_used);
+        } else if final_storage < initial_storage {
+            let refund_amount = storage_used as u128 * env::storage_byte_cost();
+            Promise::new(company_id).transfer(refund_amount);
+        }
+    }
+}
+
 /// asserts that passed account ID is exactly of form company_name-Co.carbonite.near
-pub(crate) fn assert_valid_carbonite_company_account(account_id: &str) {
+pub(crate) fn assert_valid_carbonite_company_account_pattern(account_id: &str) {
     if let Some((mut company_name, carbonite_contract_id)) = account_id.split_once(".") {
         require!(
             company_name.ends_with("-Co"),

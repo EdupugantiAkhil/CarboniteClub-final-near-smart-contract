@@ -143,7 +143,7 @@ impl Contract {
         let initial_storage = env::storage_usage();
 
         for (company_id, company, public_key) in companies {
-            assert_valid_carbonite_company_account(company_id.as_str());
+            assert_valid_carbonite_company_account_pattern(company_id.as_str());
 
             create_sub_account(company_id.clone(), public_key);
 

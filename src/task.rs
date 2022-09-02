@@ -30,6 +30,5 @@ pub struct Task {
     pub person_assigned: Option<AccountId>, // person assigned or person thst accepted the invite for task in an invite only task
     pub ft_contract_id: AccountId,          // contract ID of approved token used to pay
     pub reward: u64, // reward amount in smallest unit of tokens, Eg: for near it will be yoctoNEAR
-    pub submission_reference: HashMap<AccountId, String>, // keeps track of user_account and their submission link (preferably a decentralised storage in encrypted format)
-    pub submission_reference_hash: HashMap<AccountId, String>,
+    pub submission_reference_and_hash_by_account_id: HashMap<AccountId, (String, Base64VecU8)>, // keeps track of user_account and their submission link (preferably a decentralised storage in encrypted format) and hash
 }
