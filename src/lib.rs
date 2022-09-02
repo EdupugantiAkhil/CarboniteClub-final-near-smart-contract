@@ -132,7 +132,7 @@ impl Contract {
 
         let storage_used = env::storage_usage() - initial_storage;
 
-        refund_deposit(storage_used);
+        refund_excess_deposit(storage_used);
     }
 
     /// owner only method to add new multiple whitelisted companies
@@ -151,7 +151,7 @@ impl Contract {
         }
 
         let storage_used = env::storage_usage() - initial_storage;
-        refund_deposit(storage_used);
+        refund_excess_deposit(storage_used);
 
         // Add a gas check to ensure sub account creation and the full execution if account creation does not revert on panic
         // Add a check for max companies that can be whitelisted in a single call (restricted due to hard limit on gas on a function call)

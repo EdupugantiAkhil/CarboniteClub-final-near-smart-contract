@@ -34,7 +34,7 @@ impl Contract {
         let storage_used = final_storage.abs_diff(initial_storage);
 
         if final_storage > initial_storage {
-            refund_deposit(storage_used);
+            refund_excess_deposit(storage_used);
         } else if final_storage < initial_storage {
             let refund_amount = storage_used as u128 * env::storage_byte_cost();
             Promise::new(company_id).transfer(refund_amount);

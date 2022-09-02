@@ -24,7 +24,7 @@ impl Contract {
 
         let storage_used = env::storage_usage() - initial_storage;
 
-        refund_deposit(storage_used);
+        refund_excess_deposit(storage_used);
 
         // while onboarding users, for a fixed size of title and description appropriate amount of allowance will be given to their funciton access key
         // and appropriate amount of near to cover storage costs
