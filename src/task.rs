@@ -1,5 +1,3 @@
-use near_sdk::borsh::de;
-
 use crate::*;
 
 /// TaskId = company_name.task_name      company account_id = company_name.carbonite.near
@@ -13,6 +11,17 @@ pub enum TaskType {
         valid_till: Timestamp,                // unix epoch in ms
     }, // keeps track of invited accounts if an invite only project and validity date till if which if no-one accepts then company can claim refund
     ForEveryone, // this task can be taken up by anyone the company has the choice to select the winner
+}
+
+#[derive(BorshDeserialize, BorshSerialize, Serialize, Deserialize, Copy, Clone)]
+#[serde(crate = "near_sdk::serde")]
+pub enum TaskState {
+    Open,      // open is for invite only task that haven't been accepted
+    Pending, // pending is for invite only task that haven't been completed yet but accepted or bounty tasks that haven't been completed
+    Completed, // tasks that have been completed (for bounty atleast one submission)
+    Expired, // invite only tasks that didn't get accepted untils its validity
+    Overdue, // bounty / invite only tasks that have not been completed but it's past deadline
+    Payed, // when the payment is done, sometimes task might completed but not payed in bounty tasks because company has to verify and award the best one
 }
 
 #[derive(BorshDeserialize, BorshSerialize, Serialize, Deserialize)]
@@ -40,7 +49,8 @@ pub struct Task {
     pub company_id: AccountId, // account ID of the company giving this task
     pub deadline: Timestamp, // if task is not completed till this (unix epoch in ms) then company can claim refund
     pub person_assigned: Option<AccountId>, // person assigned or person thst accepted the invite for task in an invite only task
-    pub ft_contract_id: AccountId,          // contract ID of approved token used to pay
+    pub task_state: TaskState,
+    pub ft_contract_id: AccountId, // contract ID of approved token used to pay
     pub reward: Balance, // reward amount in smallest unit of tokens, Eg: for near it will be yoctoNEAR
     pub submissions_by_account_id: HashMap<AccountId, Submission>, // keeps track of user_account and their submission
 }
@@ -68,15 +78,34 @@ impl Task {
 
         // asserting deadline is after current time is not necessary as even if it's wrong it won't casue any harm
 
+        let task_state = match task_details.task_type {
+            TaskType::ForEveryone => TaskState::Pending,
+            TaskType::InviteOnly { .. } => TaskState::Open,
+        };
+
         Self {
             task_details,
             company_id,
             deadline,
             person_assigned: None,
+            task_state,
             ft_contract_id,
             reward,
             submissions_by_account_id: Default::default(),
         }
+    }
+
+    /// returns if validity time is completed or not for invite only tasks, false for everyone type
+    pub fn is_past_validity(&self) -> bool {
+        match self.task_details.task_type {
+            TaskType::InviteOnly { valid_till, .. } => env::block_timestamp_ms() >= valid_till,
+            TaskType::ForEveryone => false,
+        }
+    }
+
+    /// retrns if it is past task deadline or not
+    pub fn is_past_deadline(&self) -> bool {
+        env::block_timestamp_ms() >= self.deadline
     }
 }
 
@@ -121,7 +150,22 @@ impl Contract {
         }
     }
 
-    pub fn extend_deadline(new_deadline: Timestamp) {}
+    pub fn extend_deadline(&mut self, task_id: TaskId, new_deadline: Timestamp) {
+        self.ping_task(task_id.clone());
+
+        let mut task = self.task_metadata_by_id.get(&task_id).unwrap();
+
+        match task.task_state {
+            TaskState::Open | TaskState::Pending => {
+                if task.deadline < new_deadline {
+                    task.deadline = new_deadline;
+                }
+            }
+            _ => {}
+        }
+
+        self.task_metadata_by_id.insert(&task_id, &task);
+    }
 
     pub fn submit_task(task_id: TaskId, submission: Submission) {}
 }

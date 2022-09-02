@@ -157,4 +157,42 @@ impl Contract {
         // Add a check for max companies that can be whitelisted in a single call (restricted due to hard limit on gas on a function call)
         todo!();
     }
+
+    /// make appropriate changes to task_state of a given task and perform appropriate actions like refunds to company
+    pub fn ping_task(&mut self, task_id: TaskId) {
+        if let Some(mut task) = self.task_metadata_by_id.get(&task_id) {
+            match task.task_state {
+                TaskState::Open => {
+                    if task.is_past_validity() {
+                        task.task_state = TaskState::Expired;
+                    }
+                }
+                TaskState::Pending => {
+                    if task.is_past_deadline() {
+                        task.task_state = TaskState::Overdue;
+                    }
+                }
+                TaskState::Completed => {
+                    if task.is_past_deadline() {
+                        // pay to the first person who submitted and then change state
+                        todo!();
+                        task.task_state = TaskState::Payed;
+                    }
+                }
+                TaskState::Expired | TaskState::Overdue => {
+                    // pay refund to the company
+                    // and see if any penalty is to be given for overdue in invite only cases
+                    todo!();
+                }
+                TaskState::Payed => {}
+            };
+
+            self.task_metadata_by_id.insert(&task_id, &task);
+        } else {
+            env::panic_str("invalid task_id");
+        }
+
+        // add a gas check at beginning of if block for promise to happen successfully
+        todo!();
+    }
 }
