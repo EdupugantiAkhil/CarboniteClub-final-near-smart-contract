@@ -39,7 +39,7 @@ pub enum StorageKey {
     TasksCompletedPerAccount,
     TasksCompletedPerAccountInner { account_id_hash: CryptoHash },
     TasksByCompany,
-    TasksByCompanyInner { task_id_hash: CryptoHash },
+    TasksByCompanyInner { company_id_hash: CryptoHash },
     TaskMetadataById,
     RecognisedSkills,
     WhitelistedCompanies,

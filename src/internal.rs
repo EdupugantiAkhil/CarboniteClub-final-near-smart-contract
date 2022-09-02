@@ -30,4 +30,20 @@ impl Contract {
             "company ID already exists" // would never reach this since it will fail at sub account creation itself but still for security reasons
         );
     }
+
+    /// adds the task_id associated with company_id to collection and panics if task_id already exists
+    pub fn internal_add_tasks_to_company(&mut self, company_id: &AccountId, task_id: &TaskId) {
+        let mut task_set = self.tasks_by_company.get(&company_id).unwrap_or_else(|| {
+            UnorderedSet::new(StorageKey::TasksByCompanyInner {
+                company_id_hash: hash_account_id(company_id),
+            })
+        });
+
+        require!(
+            task_set.insert(task_id),
+            format!("{company_id} already has task {task_id}")
+        );
+
+        self.tasks_by_company.insert(company_id, &task_set);
+    }
 }

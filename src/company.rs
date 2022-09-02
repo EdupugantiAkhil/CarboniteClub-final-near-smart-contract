@@ -22,12 +22,10 @@ impl Contract {
 
         let company_id = env::predecessor_account_id();
 
-        require!(
-            self.whitelisted_companies
-                .insert(&company_id, &new_company_details)
-                .is_some(),
-            "invalid company"
-        );
+        self.assert_whitelisted_company(&company_id);
+
+        self.whitelisted_companies
+            .insert(&company_id, &new_company_details);
 
         let final_storage = env::storage_usage();
 
@@ -39,6 +37,16 @@ impl Contract {
             let refund_amount = storage_used as u128 * env::storage_byte_cost();
             Promise::new(company_id).transfer(refund_amount);
         }
+    }
+}
+
+impl Contract {
+    /// asserts that passed company is one of the whitelisted companies else panic
+    pub(crate) fn assert_whitelisted_company(&self, company_id: &AccountId) {
+        require!(
+            self.whitelisted_companies.get(company_id).is_some(),
+            "invalid company"
+        );
     }
 }
 

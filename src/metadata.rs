@@ -2,9 +2,6 @@ use crate::*;
 
 pub type Skills = String;
 
-/// TaskId = company_name.task_name      company account_id = company_name.carbonite.near
-pub type TaskId = String;
-
 #[derive(BorshDeserialize, BorshSerialize, Serialize, Deserialize, Clone)]
 #[serde(crate = "near_sdk::serde")]
 pub struct NFTContractMetadata {
