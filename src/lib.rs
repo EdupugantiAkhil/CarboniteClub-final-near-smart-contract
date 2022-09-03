@@ -174,12 +174,12 @@ impl Contract {
                 }
                 TaskState::Completed => {
                     if task.is_past_deadline() {
-                        // pay to the first person who submitted and then change state
-                        // add to the completed tasks per account collection
-                        todo!();
-                        task.task_state = TaskState::Payed;
-                    }
+
+                        if let TaskType::ForEveryone = task.task_details.task_type{
+                            return;
+                        }
                 }
+            }
                 TaskState::Expired | TaskState::Overdue => {
                     // pay refund to the company
                     // and see if any penalty is to be given for overdue in invite only cases
