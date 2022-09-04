@@ -48,29 +48,35 @@ impl Contract {
             self.ping_task(task_id.clone());
 
             if let TaskState::Completed = task.task_state {
-                let company_id = env::predecessor_account_id();
 
-                require!(company_id == task.company_id, "invalid company");
+                if task.is_past_deadline(){
 
-                let submission_set = self.submissions_per_task.get(&task_id).unwrap();
-
-                require!(
-                    submission_set.get(&user_id).is_some(),
-                    "given user has no submissions for this task"
-                );
-
-                self.internal_add_tasks_to_account(&user_id, &task_id);
-
-                task.task_state = TaskState::Payed;
-
-                let storage_used = env::storage_usage() - initial_storage;
-
-                refund_excess_deposit(storage_used);
-
-                // update xp
-                // pay the user_id reward
-                // make gas checks for promise to go through
-                todo!()
+                    let company_id = env::predecessor_account_id();
+    
+                    require!(company_id == task.company_id, "invalid company");
+    
+                    let submission_set = self.submissions_per_task.get(&task_id).unwrap();
+    
+                    require!(
+                        submission_set.get(&user_id).is_some(),
+                        "given user has no submissions for this task"
+                    );
+    
+                    self.internal_add_tasks_to_account(&user_id, &task_id);
+    
+                    task.task_state = TaskState::Payed;
+    
+                    let storage_used = env::storage_usage() - initial_storage;
+    
+                    refund_excess_deposit(storage_used);
+    
+                    // update xp
+                    // pay the user_id reward
+                    // make gas checks for promise to go through
+                    todo!()
+                }else{
+                    env::panic_str("can't select tasks until deadline has reached");
+                }
             } else {
                 env::panic_str("reward for task has already been payed");
             }
