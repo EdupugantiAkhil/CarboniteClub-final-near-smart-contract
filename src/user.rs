@@ -33,6 +33,34 @@ impl Contract {
         // think of making it a batch mint function
         todo!();
     }
+
+    /// accept invite from a company for a particular task
+    pub fn accept_invite(&mut self, task_id: TaskId) {
+        if let Some(mut task) = self.task_metadata_by_id.get(&task_id) {
+            self.ping_task(task_id);
+
+            let user_id = env::predecessor_account_id();
+
+            match task.task_state {
+                TaskState::Open => {
+                    if let TaskType::InviteOnly {
+                        invited_accounts, ..
+                    } = task.task_details.task_type
+                    {
+                        require!(
+                            invited_accounts.contains(&user_id),
+                            "you are not invited for this task"
+                        );
+
+                        task.person_assigned = Some(user_id);
+                    }
+                }
+                _ => {}
+            }
+        } else {
+            env::panic_str("invalid task_id");
+        }
+    }
 }
 
 /// asserts that passed account ID is exactly of form valid_username.carbonite.near

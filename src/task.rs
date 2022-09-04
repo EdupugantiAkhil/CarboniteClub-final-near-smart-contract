@@ -16,12 +16,18 @@ pub enum TaskType {
 #[derive(BorshDeserialize, BorshSerialize, Serialize, Deserialize, Copy, Clone)]
 #[serde(crate = "near_sdk::serde")]
 pub enum TaskState {
-    Open,      // open is for invite only task that haven't been accepted
-    Pending, // pending is for invite only task that haven't been completed yet but accepted or bounty tasks that haven't been completed
-    Completed, // tasks that have been completed (for bounty atleast one submission)
-    Expired, // invite only tasks that didn't get accepted untils its validity
-    Overdue, // bounty / invite only tasks that have not been completed but it's past deadline
-    Payed, // when the payment is done, sometimes task might completed but not payed in bounty tasks because company has to verify and award the best one
+    /// open is for invite only task that haven't been accepted
+    Open,
+    /// pending is for invite only task that haven't been completed yet but accepted or bounty tasks that haven't been completed
+    Pending,
+    /// tasks that have been completed (for bounty atleast one submission)
+    Completed,
+    /// invite only tasks that didn't get accepted untils its validity
+    Expired,
+    /// bounty / invite only tasks that have not been completed but it's past deadline
+    Overdue,
+    /// when the payment is done, sometimes task might completed but not payed in bounty tasks because company has to verify and award the best one
+    Payed,
 }
 
 #[derive(BorshDeserialize, BorshSerialize, Serialize, Deserialize)]
@@ -105,6 +111,15 @@ impl Task {
         }
     }
 
+    /// return if invite only or not and also return the account ID if the person is assigned
+    pub fn is_invite_only(&self) -> bool {
+        if let TaskType::InviteOnly { .. } = self.task_details.task_type {
+            true
+        } else {
+            false
+        }
+    }
+
     /// returns if validity time is completed or not for invite only tasks, false for everyone type
     pub fn is_past_validity(&self) -> bool {
         match self.task_details.task_type {
@@ -121,6 +136,7 @@ impl Task {
 
 #[near_bindgen]
 impl Contract {
+    /// add tasks in near token, (Here company pays reward + storage_cost + storage_cost for person assigned for invite only task)
     #[payable]
     pub fn add_task_in_near_token(
         &mut self,
@@ -148,7 +164,13 @@ impl Contract {
 
         self.task_metadata_by_id.insert(&task_id, &task);
 
-        let storage_used = env::storage_usage() - initial_storage;
+        let mut storage_used = env::storage_usage() - initial_storage;
+
+        // pay for person assigned if invite only task
+        if task.is_invite_only() {
+            storage_used = storage_used + STORAGE_USED_PER_ACCOUNT;
+        }
+
         let storage_cost = storage_used as u128 * env::storage_byte_cost();
 
         let refund_amount = env::attached_deposit() - (storage_cost + reward);

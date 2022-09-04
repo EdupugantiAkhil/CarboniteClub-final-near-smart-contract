@@ -6,7 +6,7 @@ use near_sdk::json_types::Base64VecU8;
 
 use near_sdk::{
     env, near_bindgen, require, AccountId, Balance, BorshStorageKey, CryptoHash, PanicOnDefault,
-    Promise, PublicKey, Timestamp,
+    Promise, PublicKey, StorageUsage, Timestamp,
 };
 
 use std::collections::{HashMap, HashSet};
@@ -31,6 +31,8 @@ const DEFAULT_MEDIA_REFERENCE: &str = "ipfs://dummy_default_media_link";
 const DEFAULT_NFT_REFERENCE: &str = "ipfs://dummy_default_nft_link";
 
 const BASE_STORAGE_COST: Balance = 10_000_000_000_000_000_000_000; // this is equal to 0.01 NEAR
+
+const STORAGE_USED_PER_ACCOUNT: StorageUsage = 64;
 
 /// Helper structure to for keys of the persistent collections.
 #[derive(BorshStorageKey, BorshSerialize)]
@@ -172,20 +174,12 @@ impl Contract {
                         task.task_state = TaskState::Overdue;
                     }
                 }
-                TaskState::Completed => {
-                    if task.is_past_deadline() {
-
-                        if let TaskType::ForEveryone = task.task_details.task_type{
-                            return;
-                        }
-                }
-            }
                 TaskState::Expired | TaskState::Overdue => {
                     // pay refund to the company
                     // and see if any penalty is to be given for overdue in invite only cases
                     todo!();
                 }
-                TaskState::Payed => {}
+                TaskState::Payed | TaskState::Completed => {}
             };
 
             self.task_metadata_by_id.insert(&task_id, &task);
