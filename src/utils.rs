@@ -1,9 +1,9 @@
 use crate::*;
 
 /// returns SHA-256 hash of the passed account ID
-pub(crate) fn hash_account_id(account_id: &AccountId) -> CryptoHash {
+pub(crate) fn hash_id(id: &str) -> CryptoHash {
     let mut hash = CryptoHash::default();
-    hash.copy_from_slice(&env::sha256(account_id.as_bytes()));
+    hash.copy_from_slice(&env::sha256(id.as_bytes()));
     hash
 }
 

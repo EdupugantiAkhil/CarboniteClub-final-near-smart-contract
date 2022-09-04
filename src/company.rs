@@ -38,6 +38,46 @@ impl Contract {
             Promise::new(company_id).transfer(refund_amount);
         }
     }
+
+    /// select a submission for a bounty task that is to be awarded
+    #[payable]
+    pub fn select_task(&mut self, task_id: TaskId, user_id: AccountId) {
+        if let Some(mut task) = self.task_metadata_by_id.get(&task_id) {
+            let initial_storage = env::storage_usage();
+
+            self.ping_task(task_id.clone());
+
+            if let TaskState::Completed = task.task_state {
+                let company_id = env::predecessor_account_id();
+
+                require!(company_id == task.company_id, "invalid company");
+
+                let submission_set = self.submissions_per_task.get(&task_id).unwrap();
+
+                require!(
+                    submission_set.get(&user_id).is_some(),
+                    "given user has no submissions for this task"
+                );
+
+                self.internal_add_tasks_to_account(&user_id, &task_id);
+
+                task.task_state = TaskState::Payed;
+
+                let storage_used = env::storage_usage() - initial_storage;
+
+                refund_excess_deposit(storage_used);
+
+                // update xp
+                // pay the user_id reward
+                // make gas checks for promise to go through
+                todo!()
+            } else {
+                env::panic_str("reward for task has already been payed");
+            }
+        } else {
+            env::panic_str("invalid task");
+        }
+    }
 }
 
 impl Contract {

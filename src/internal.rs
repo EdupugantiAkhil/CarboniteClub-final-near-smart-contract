@@ -35,7 +35,7 @@ impl Contract {
     pub fn internal_add_tasks_to_company(&mut self, company_id: &AccountId, task_id: &TaskId) {
         let mut task_set = self.tasks_by_company.get(&company_id).unwrap_or_else(|| {
             UnorderedSet::new(StorageKey::TasksByCompanyInner {
-                company_id_hash: hash_account_id(company_id),
+                company_id_hash: hash_id(company_id.as_str()),
             })
         });
 
@@ -54,7 +54,7 @@ impl Contract {
             .get(&user_id)
             .unwrap_or_else(|| {
                 UnorderedSet::new(StorageKey::TasksCompletedPerAccountInner {
-                    account_id_hash: hash_account_id(user_id),
+                    account_id_hash: hash_id(user_id.as_str()),
                 })
             });
 
@@ -64,5 +64,26 @@ impl Contract {
         );
 
         self.tasks_completed_per_account.insert(user_id, &task_set);
+    }
+
+    /// add submission to the given task, panics if re submitting the task
+    pub fn internal_add_submission_to_task(
+        &mut self,
+        task_id: &TaskId,
+        user_id: &AccountId,
+        submission: &Submission,
+    ) {
+        let mut submission_set = self.submissions_per_task.get(task_id).unwrap_or_else(|| {
+            UnorderedMap::new(StorageKey::SubmissionsPerTaskInner {
+                task_id_hash: hash_id(task_id.as_str()),
+            })
+        });
+
+        require!(
+            submission_set.insert(user_id, submission).is_none(),
+            "can't resubmit the task"
+        );
+
+        self.submissions_per_task.insert(task_id, &submission_set);
     }
 }

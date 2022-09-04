@@ -43,6 +43,8 @@ pub enum StorageKey {
     TasksByCompany,
     TasksByCompanyInner { company_id_hash: CryptoHash },
     TaskMetadataById,
+    SubmissionsPerTask,
+    SubmissionsPerTaskInner { task_id_hash: CryptoHash },
     RecognisedSkills,
     WhitelistedCompanies,
     ApprovedFTTokens,
@@ -60,6 +62,9 @@ pub struct Contract {
 
     // keeps track of tasks that are completed and verified for a given account
     pub tasks_completed_per_account: LookupMap<AccountId, UnorderedSet<TaskId>>,
+
+    // keeps tracks of tasks that are submitted for a particular task ID
+    pub submissions_per_task: LookupMap<TaskId, UnorderedMap<AccountId, Submission>>, // keeps track of user_account and their submission
 
     // keeps track of all tasks that are given for a given company
     pub tasks_by_company: LookupMap<AccountId, UnorderedSet<TaskId>>,
@@ -90,6 +95,7 @@ impl Contract {
             owner_id,
             tokens_by_account_id: UnorderedMap::new(StorageKey::TokensByAccountId),
             tasks_completed_per_account: LookupMap::new(StorageKey::TasksCompletedPerAccount),
+            submissions_per_task: LookupMap::new(StorageKey::SubmissionsPerTask),
             tasks_by_company: LookupMap::new(StorageKey::TasksByCompany),
             task_metadata_by_id: UnorderedMap::new(StorageKey::TaskMetadataById),
             recognised_skills: UnorderedSet::new(StorageKey::RecognisedSkills),
@@ -174,12 +180,10 @@ impl Contract {
                         task.task_state = TaskState::Overdue;
                     }
                 }
-                TaskState::Expired | TaskState::Overdue => {
-                    // pay refund to the company
-                    // and see if any penalty is to be given for overdue in invite only cases
-                    todo!();
-                }
-                TaskState::Payed | TaskState::Completed => {}
+                TaskState::Payed
+                | TaskState::Completed
+                | TaskState::Expired
+                | TaskState::Overdue => {}
             };
 
             self.task_metadata_by_id.insert(&task_id, &task);
