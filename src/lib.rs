@@ -54,34 +54,34 @@ pub enum StorageKey {
 #[near_bindgen]
 #[derive(BorshDeserialize, BorshSerialize, PanicOnDefault)]
 pub struct Contract {
-    // owner of the contract
+    /// owner of the contract
     pub owner_id: AccountId,
 
-    // keeps track of metadata of carbonite NFT for a given account
+    /// keeps track of metadata of carbonite NFT for a given account
     pub tokens_by_account_id: UnorderedMap<AccountId, TokenMetadata>,
 
-    // keeps track of tasks that are completed and verified for a given account
+    /// keeps track of tasks that are completed and verified for a given account
     pub tasks_completed_per_account: LookupMap<AccountId, UnorderedSet<TaskId>>,
 
-    // keeps tracks of tasks that are submitted for a particular task ID
+    /// keeps tracks of tasks that are submitted for a particular task ID
     pub submissions_per_task: LookupMap<TaskId, UnorderedMap<AccountId, Submission>>, // keeps track of user_account and their submission
 
-    // keeps track of all tasks that are given for a given company
+    /// keeps track of all tasks that are given for a given company
     pub tasks_by_company: LookupMap<AccountId, UnorderedSet<TaskId>>,
 
-    // keeps track of task metadata for a given task ID
+    /// keeps track of task metadata for a given task ID
     pub task_metadata_by_id: UnorderedMap<TaskId, Task>,
 
-    // keeps track of all the skills that are recognised by carbonite community
+    /// keeps track of all the skills that are recognised by carbonite community
     pub recognised_skills: UnorderedSet<Skills>,
 
-    // keeps track of whitelisted companies that are verified to be genuine
+    /// keeps track of whitelisted companies that are verified to be genuine
     pub whitelisted_companies: UnorderedMap<AccountId, Company>,
 
-    // keeps track of approved tokens that the companies can use for paying
+    /// keeps track of approved tokens that the companies can use for paying
     pub approved_ft_tokens: UnorderedSet<AccountId>,
 
-    // keeps track of metadata of the contract
+    /// keeps track of metadata of the contract
     pub metadata: LazyOption<NFTContractMetadata>,
 }
 

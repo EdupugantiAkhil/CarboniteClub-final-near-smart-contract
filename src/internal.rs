@@ -86,4 +86,16 @@ impl Contract {
 
         self.submissions_per_task.insert(task_id, &submission_set);
     }
+
+    /// removes the task_id and associated company_id from collection and panics if task_id doesn't existss
+    pub fn internal_remove_tasks_from_company(&mut self, company_id: &AccountId, task_id: &TaskId) {
+        let mut task_set = self
+            .tasks_by_company
+            .get(&company_id)
+            .unwrap_or_else(|| env::panic_str("no tasks for this company exists"));
+
+            task_set.remove(task_id);
+
+        self.tasks_by_company.insert(company_id, &task_set);
+    }
 }

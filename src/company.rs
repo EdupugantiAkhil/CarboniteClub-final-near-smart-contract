@@ -48,37 +48,65 @@ impl Contract {
             self.ping_task(task_id.clone());
 
             if let TaskState::Completed = task.task_state {
-
-                if task.is_past_deadline(){
-
+                if task.is_past_deadline() {
                     let company_id = env::predecessor_account_id();
-    
+
                     require!(company_id == task.company_id, "invalid company");
-    
+
                     let submission_set = self.submissions_per_task.get(&task_id).unwrap();
-    
+
                     require!(
                         submission_set.get(&user_id).is_some(),
                         "given user has no submissions for this task"
                     );
-    
+
                     self.internal_add_tasks_to_account(&user_id, &task_id);
-    
+
                     task.task_state = TaskState::Payed;
-    
+
                     let storage_used = env::storage_usage() - initial_storage;
-    
+
                     refund_excess_deposit(storage_used);
-    
+
                     // update xp
                     // pay the user_id reward
                     // make gas checks for promise to go through
                     todo!()
-                }else{
+                } else {
                     env::panic_str("can't select tasks until deadline has reached");
                 }
             } else {
                 env::panic_str("reward for task has already been payed");
+            }
+        } else {
+            env::panic_str("invalid task");
+        }
+    }
+
+    /// claim refunds of expired or overdue task
+    pub fn claim_refund(&mut self, task_id: TaskId) {
+        let initial_storage = env::storage_usage();
+
+        if let Some(mut task) = self.task_metadata_by_id.get(&task_id) {
+            self.ping_task(task_id.clone());
+
+            match task.task_state {
+                TaskState::Expired | TaskState::Overdue => {
+                    let company_id = env::predecessor_account_id();
+
+                    self.internal_remove_tasks_from_company(&company_id, &task_id);
+                    self.task_metadata_by_id.remove(&task_id);
+
+                    let storage_used = env::storage_usage() - initial_storage;
+
+                    // gas checks for promise to go through
+                    // pay the company in the token that task was supposed to be rewarded with
+                    // refund storage costs to company
+                    todo!();
+                }
+                _ => env::panic_str(
+                    "can't claim refunds for tasks that are pending / open / completed / payed",
+                ),
             }
         } else {
             env::panic_str("invalid task");
