@@ -22,7 +22,7 @@ pub enum TaskState {
     Pending,
     /// bounty tasks that have been completed (atleast one submission)
     Completed,
-    /// invite only tasks that didn't get accepted untils its validity
+    /// invite that didn't get accepted untils its validity
     Expired,
     /// bounty / invite only tasks that have not been completed but it's past deadline
     Overdue,
@@ -224,12 +224,13 @@ impl Contract {
                 task.task_state = TaskState::Completed;
 
                 if task.person_assigned.is_some() {
-                    // transfer reward to the user given its a invite only
-                    // make gas check for promise to go through
-                    // update xp
-                    todo!();
+                    self.transfer_reward_to(&task_id, &user_id);
+
+                    self.update_user_carbonite_metadata_for_task(&task_id, &user_id);
                     task.task_state = TaskState::Payed;
-                    self.internal_add_tasks_to_account(&user_id, &task_id);
+
+                    // make gas check for promise to go through
+                    todo!();
                 }
             }
             TaskState::Completed => {

@@ -47,25 +47,6 @@ impl Contract {
         self.tasks_by_company.insert(company_id, &task_set);
     }
 
-    /// adds the task_id associated with company_id to collection and panics if task_id already exists
-    pub fn internal_add_tasks_to_account(&mut self, user_id: &AccountId, task_id: &TaskId) {
-        let mut task_set = self
-            .tasks_completed_per_account
-            .get(&user_id)
-            .unwrap_or_else(|| {
-                UnorderedSet::new(StorageKey::TasksCompletedPerAccountInner {
-                    account_id_hash: hash_id(user_id.as_str()),
-                })
-            });
-
-        require!(
-            task_set.insert(task_id),
-            format!("{user_id} already has completed {task_id}")
-        );
-
-        self.tasks_completed_per_account.insert(user_id, &task_set);
-    }
-
     /// add submission to the given task, panics if re submitting the task
     pub fn internal_add_submission_to_task(
         &mut self,
@@ -94,7 +75,7 @@ impl Contract {
             .get(&company_id)
             .unwrap_or_else(|| env::panic_str("no tasks for this company exists"));
 
-            task_set.remove(task_id);
+        task_set.remove(task_id);
 
         self.tasks_by_company.insert(company_id, &task_set);
     }

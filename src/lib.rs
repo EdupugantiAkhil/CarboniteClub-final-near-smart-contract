@@ -9,11 +9,12 @@ use near_sdk::{
     Promise, PublicKey, StorageUsage, Timestamp,
 };
 
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
 
 mod company;
 mod internal;
 mod metadata;
+mod payment;
 mod task;
 mod user;
 mod utils;
@@ -21,6 +22,7 @@ mod utils;
 pub use crate::company::*;
 pub use crate::internal::*;
 pub use crate::metadata::*;
+pub use crate::payment::*;
 pub use crate::task::*;
 pub use crate::user::*;
 pub use crate::utils::*;
@@ -38,7 +40,6 @@ const STORAGE_USED_PER_ACCOUNT: StorageUsage = 64;
 #[derive(BorshStorageKey, BorshSerialize)]
 pub enum StorageKey {
     TokensByAccountId,
-    TasksCompletedPerAccount,
     TasksCompletedPerAccountInner { account_id_hash: CryptoHash },
     TasksByCompany,
     TasksByCompanyInner { company_id_hash: CryptoHash },
@@ -59,9 +60,6 @@ pub struct Contract {
 
     /// keeps track of metadata of carbonite NFT for a given account
     pub tokens_by_account_id: UnorderedMap<AccountId, TokenMetadata>,
-
-    /// keeps track of tasks that are completed and verified for a given account
-    pub tasks_completed_per_account: LookupMap<AccountId, UnorderedSet<TaskId>>,
 
     /// keeps tracks of tasks that are submitted for a particular task ID
     pub submissions_per_task: LookupMap<TaskId, UnorderedMap<AccountId, Submission>>, // keeps track of user_account and their submission
@@ -94,7 +92,6 @@ impl Contract {
         let mut this = Self {
             owner_id,
             tokens_by_account_id: UnorderedMap::new(StorageKey::TokensByAccountId),
-            tasks_completed_per_account: LookupMap::new(StorageKey::TasksCompletedPerAccount),
             submissions_per_task: LookupMap::new(StorageKey::SubmissionsPerTask),
             tasks_by_company: LookupMap::new(StorageKey::TasksByCompany),
             task_metadata_by_id: UnorderedMap::new(StorageKey::TaskMetadataById),
@@ -150,6 +147,11 @@ impl Contract {
 
         let initial_storage = env::storage_usage();
 
+        require!(
+            companies.len() <= 7,
+            "can't whitelist more than 7 companies in a single call (hard gas limit)"
+        );
+
         for (company_id, company, public_key) in companies {
             assert_valid_carbonite_company_account_pattern(company_id.as_str());
 
@@ -162,34 +164,32 @@ impl Contract {
         refund_excess_deposit(storage_used);
 
         // Add a gas check to ensure sub account creation and the full execution if account creation does not revert on panic
-        // Add a check for max companies that can be whitelisted in a single call (restricted due to hard limit on gas on a function call)
+        // Test and modify what should be max companies that can be whitelisted in a single call (restricted due to hard limit on gas on a function call)
         todo!();
     }
 
     /// make appropriate changes to task_state of a given task and perform appropriate actions like refunds to company
     pub fn ping_task(&mut self, task_id: TaskId) {
-        if let Some(mut task) = self.task_metadata_by_id.get(&task_id) {
-            match task.task_state {
-                TaskState::Open => {
-                    if task.is_past_validity() {
-                        task.task_state = TaskState::Expired;
-                    }
-                }
-                TaskState::Pending => {
-                    if task.is_past_deadline() {
-                        task.task_state = TaskState::Overdue;
-                    }
-                }
-                TaskState::Payed
-                | TaskState::Completed
-                | TaskState::Expired
-                | TaskState::Overdue => {}
-            };
+        let mut task = self
+            .task_metadata_by_id
+            .get(&task_id)
+            .unwrap_or_else(|| env::panic_str("invalid task_id"));
 
-            self.task_metadata_by_id.insert(&task_id, &task);
-        } else {
-            env::panic_str("invalid task_id");
-        }
+        match task.task_state {
+            TaskState::Open => {
+                if task.is_past_validity() {
+                    task.task_state = TaskState::Expired;
+                }
+            }
+            TaskState::Pending => {
+                if task.is_past_deadline() {
+                    task.task_state = TaskState::Overdue;
+                }
+            }
+            TaskState::Payed | TaskState::Completed | TaskState::Expired | TaskState::Overdue => {}
+        };
+
+        self.task_metadata_by_id.insert(&task_id, &task);
 
         // add a gas check at beginning of if block for promise to happen successfully
         todo!();

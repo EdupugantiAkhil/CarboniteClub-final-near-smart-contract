@@ -60,16 +60,17 @@ impl Contract {
                         "given user has no submissions for this task"
                     );
 
-                    self.internal_add_tasks_to_account(&user_id, &task_id);
-
                     task.task_state = TaskState::Payed;
+
+                    self.task_metadata_by_id.insert(&task_id, &task);
+
+                    self.transfer_reward_to(&task_id, &user_id);
+
+                    self.update_user_carbonite_metadata_for_task(&task_id, &user_id);
 
                     let storage_used = env::storage_usage() - initial_storage;
 
                     refund_excess_deposit(storage_used);
-
-                    // update xp
-                    // pay the user_id reward
                     // make gas checks for promise to go through
                     todo!()
                 } else {
@@ -87,29 +88,30 @@ impl Contract {
     pub fn claim_refund(&mut self, task_id: TaskId) {
         let initial_storage = env::storage_usage();
 
-        if let Some(mut task) = self.task_metadata_by_id.get(&task_id) {
-            self.ping_task(task_id.clone());
+        let task = self
+            .task_metadata_by_id
+            .get(&task_id)
+            .unwrap_or_else(|| env::panic_str("invalid task"));
 
-            match task.task_state {
-                TaskState::Expired | TaskState::Overdue => {
-                    let company_id = env::predecessor_account_id();
+        self.ping_task(task_id.clone());
 
-                    self.internal_remove_tasks_from_company(&company_id, &task_id);
-                    self.task_metadata_by_id.remove(&task_id);
+        match task.task_state {
+            TaskState::Expired | TaskState::Overdue => {
+                let company_id = env::predecessor_account_id();
 
-                    let storage_used = env::storage_usage() - initial_storage;
+                self.internal_remove_tasks_from_company(&company_id, &task_id);
+                self.task_metadata_by_id.remove(&task_id);
 
-                    // gas checks for promise to go through
-                    // pay the company in the token that task was supposed to be rewarded with
-                    // refund storage costs to company
-                    todo!();
-                }
-                _ => env::panic_str(
-                    "can't claim refunds for tasks that are pending / open / completed / payed",
-                ),
+                let storage_used = env::storage_usage() - initial_storage;
+
+                self.transfer_reward_to(&task_id, &company_id);
+                // gas checks for promise to go through
+                // refund storage costs to company
+                todo!();
             }
-        } else {
-            env::panic_str("invalid task");
+            _ => env::panic_str(
+                "can't claim refunds for tasks that are pending / open / completed / payed",
+            ),
         }
     }
 }
@@ -126,27 +128,27 @@ impl Contract {
 
 /// asserts that passed account ID is exactly of form company_name-Co.carbonite.near
 pub(crate) fn assert_valid_carbonite_company_account_pattern(account_id: &str) {
-    if let Some((mut company_name, carbonite_contract_id)) = account_id.split_once(".") {
-        require!(
-            company_name.ends_with("-Co"),
-            "Invlalid company name passed"
-        );
+    let (mut company_name, carbonite_contract_id) = account_id
+        .split_once(".")
+        .unwrap_or_else(|| env::panic_str("Invalid account ID passed"));
 
-        (company_name, _) = company_name.split_once("-").unwrap();
+    require!(
+        company_name.ends_with("-Co"),
+        "Invlalid company name passed"
+    );
 
-        require!(
-            company_name
-                .bytes()
-                .into_iter()
-                .all(|c| matches!(c, b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'_')),
-            "Invalid company name passed"
-        );
+    (company_name, _) = company_name.split_once("-").unwrap();
 
-        require!(
-            carbonite_contract_id == env::current_account_id().as_str(),
-            "Invalid account ID passed"
-        );
-    } else {
-        env::panic_str("Invalid account ID passed")
-    }
+    require!(
+        company_name
+            .bytes()
+            .into_iter()
+            .all(|c| matches!(c, b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'_')),
+        "Invalid company name passed"
+    );
+
+    require!(
+        carbonite_contract_id == env::current_account_id().as_str(),
+        "Invalid account ID passed"
+    );
 }

@@ -36,49 +36,52 @@ impl Contract {
 
     /// accept invite from a company for a particular task
     pub fn accept_invite(&mut self, task_id: TaskId) {
-        if let Some(mut task) = self.task_metadata_by_id.get(&task_id) {
-            self.ping_task(task_id);
+        let mut task = self
+            .task_metadata_by_id
+            .get(&task_id)
+            .unwrap_or_else(|| env::panic_str("invalid task_id"));
 
-            let user_id = env::predecessor_account_id();
+        self.ping_task(task_id.clone());
 
-            match task.task_state {
-                TaskState::Open => {
-                    if let TaskType::InviteOnly {
-                        invited_accounts, ..
-                    } = task.task_details.task_type
-                    {
-                        require!(
-                            invited_accounts.contains(&user_id),
-                            "you are not invited for this task"
-                        );
+        let user_id = env::predecessor_account_id();
 
-                        task.person_assigned = Some(user_id);
-                    }
+        match task.task_state {
+            TaskState::Open => {
+                if let TaskType::InviteOnly {
+                    invited_accounts, ..
+                } = &task.task_details.task_type
+                {
+                    require!(
+                        invited_accounts.contains(&user_id),
+                        "you are not invited for this task"
+                    );
+
+                    task.person_assigned = Some(user_id);
                 }
-                _ => {}
             }
-        } else {
-            env::panic_str("invalid task_id");
+            _ => {}
         }
+
+        self.task_metadata_by_id.insert(&task_id, &task);
     }
 }
 
 /// asserts that passed account ID is exactly of form valid_username.carbonite.near
 pub(crate) fn assert_valid_carbonite_user_account_pattern(account_id: &str) {
-    if let Some((username, carbonite_contract_id)) = account_id.split_once(".") {
-        require!(
-            username
-                .bytes()
-                .into_iter()
-                .all(|c| matches!(c, b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'_')),
-            "Invalid username passed"
-        );
+    let (username, carbonite_contract_id) = account_id
+        .split_once(".")
+        .unwrap_or_else(|| env::panic_str("Invalid account ID passed"));
 
-        require!(
-            carbonite_contract_id == env::current_account_id().as_str(),
-            "Invalid account ID passed"
-        );
-    } else {
-        env::panic_str("Invalid account ID passed")
-    }
+    require!(
+        username
+            .bytes()
+            .into_iter()
+            .all(|c| matches!(c, b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'_')),
+        "Invalid username passed"
+    );
+
+    require!(
+        carbonite_contract_id == env::current_account_id().as_str(),
+        "Invalid account ID passed"
+    );
 }

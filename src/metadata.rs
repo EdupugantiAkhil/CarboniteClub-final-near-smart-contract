@@ -33,9 +33,8 @@ pub struct TokenMetadata {
 #[serde(crate = "near_sdk::serde")]
 pub struct CarboniteMetdata {
     pub xp: u16,
-    pub current_working_task_count: u8,
+    pub tasks_completed: Vec<TaskId>,
     pub total_tasks_completed: u16,
-    pub total_bounty_earned: u32,
 }
 
 pub trait NonFungibleTokenMetadata {
@@ -67,5 +66,35 @@ impl TokenMetadata {
             reference: DEFAULT_NFT_REFERENCE.to_string(),
             reference_hash,
         }
+    }
+}
+
+impl Contract {
+    /// updates given user's carbonite metadata corresponding to task_given, no checks except existence of user_id and task_id are performed
+    pub(crate) fn update_user_carbonite_metadata_for_task(
+        &mut self,
+        task_id: &TaskId,
+        user_id: &AccountId,
+    ) {
+        let mut token_metadata = self
+            .tokens_by_account_id
+            .get(user_id)
+            .unwrap_or_else(|| env::panic_str("Invalid user"));
+
+        let task = self
+            .task_metadata_by_id
+            .get(&task_id)
+            .unwrap_or_else(|| env::panic_str("invalid task"));
+
+        // update carbonite metadata
+
+        token_metadata.carbonite_metadata.total_tasks_completed += 1;
+
+        token_metadata
+            .carbonite_metadata
+            .tasks_completed
+            .push(task_id.clone());
+
+        self.tokens_by_account_id.insert(user_id, &token_metadata);
     }
 }
