@@ -2,7 +2,7 @@
   "name": "@carboniteclub/contract",
   "version": "0.0.1",
   "description": "smart contract of CarboniteClub",
-  "main": "index.js",
+  "main": "index.ts",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
